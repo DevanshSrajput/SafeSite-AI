@@ -1,0 +1,13 @@
+train: c:/Users/Aviral/Documents/Projects/SafeSIteAI/ppe detection.v3i.yolov8/train/images
+val: c:/Users/Aviral/Documents/Projects/SafeSIteAI/ppe detection.v3i.yolov8/valid/images
+test: c:/Users/Aviral/Documents/Projects/SafeSIteAI/ppe detection.v3i.yolov8/test/images
+
+nc: 4
+names: ['Boots', 'Gloves', 'Helmet', 'Vest']
+
+roboflow:
+  workspace: sai-arun-1e1im
+  project: ppe-detection-0zyxy
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/sai-arun-1e1im/ppe-detection-0zyxy/dataset/3

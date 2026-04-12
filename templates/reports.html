@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSite AI — Incident Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="nav-icon">&#9881;</span>
+            <h1>SafeSite AI</h1>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Live Monitor</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/reports" class="nav-link active">Reports</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="page-header">
+            <h2>Incident Reports</h2>
+            <p class="subtitle">Generate and download PDF reports for any date range</p>
+        </div>
+
+        <!-- Report Generation Form -->
+        <div class="report-form-card">
+            <h3>Generate Report</h3>
+            <div class="report-form">
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="form-group">
+                    <label for="filterType">Violation Type</label>
+                    <select id="filterType">
+                        <option value="">All Types</option>
+                        <option value="No Helmet">No Helmet</option>
+                        <option value="No Safety Vest">No Safety Vest</option>
+                        <option value="Zone Intrusion">Zone Intrusion</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="generateReport()">
+                    Generate PDF Report
+                </button>
+                <button class="btn btn-secondary btn-lg" onclick="previewViolations()">
+                    Preview Violations
+                </button>
+            </div>
+        </div>
+
+        <!-- Violation Preview Table -->
+        <div id="previewSection" class="violations-table-card" style="display:none;">
+            <div class="table-header">
+                <h3>Violation Log</h3>
+                <span id="violationCount" class="badge">0 records</span>
+            </div>
+            <div class="table-container">
+                <table id="violationsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>Violation Type</th>
+                            <th>Zone</th>
+                            <th>Confidence</th>
+                            <th>Screenshot</th>
+                        </tr>
+                    </thead>
+                    <tbody id="violationsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Status Message -->
+        <div id="reportStatus" class="status-message" style="display:none;"></div>
+    </div>
+
+    <script>
+        // Set default dates to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+
+        async function generateReport() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const status = document.getElementById('reportStatus');
+
+            status.style.display = 'block';
+            status.className = 'status-message status-info';
+            status.textContent = 'Generating report... Please wait.';
+
+            try {
+                const response = await fetch('/api/report/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({start_date: startDate, end_date: endDate})
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `SafeSiteAI_Report_${startDate}_to_${endDate}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+
+                    status.className = 'status-message status-success';
+                    status.textContent = 'Report generated and downloaded successfully!';
+                } else {
+                    throw new Error('Failed to generate report');
+                }
+            } catch (err) {
+                status.className = 'status-message status-error';
+                status.textContent = 'Error generating report: ' + err.message;
+            }
+        }
+
+        async function previewViolations() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const violationType = document.getElementById('filterType').value;
+
+            let url = `/api/violations?start_date=${startDate}&end_date=${endDate}`;
+            if (violationType) url += `&violation_type=${violationType}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const section = document.getElementById('previewSection');
+                section.style.display = 'block';
+                document.getElementById('violationCount').textContent = `${data.total} records`;
+
+                const tbody = document.getElementById('violationsBody');
+                tbody.innerHTML = '';
+
+                data.violations.forEach((v, i) => {
+                    const row = document.createElement('tr');
+                    const screenshotHtml = v.screenshot_path
+                        ? `<img src="/static/${v.screenshot_path}" alt="screenshot" class="thumb">`
+                        : 'N/A';
+                    row.innerHTML = `
+                        <td>${i + 1}</td>
+                        <td>${v.timestamp}</td>
+                        <td><span class="violation-badge ${v.violation_type.replace(/\s+/g, '-').toLowerCase()}">${v.violation_type}</span></td>
+                        <td>${v.zone_name || '-'}</td>
+                        <td>${(v.confidence_score * 100).toFixed(1)}%</td>
+                        <td>${screenshotHtml}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Error fetching violations:', err);
+            }
+        }
+    </script>
+</body>
+</html>

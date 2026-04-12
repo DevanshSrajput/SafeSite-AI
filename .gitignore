@@ -1,0 +1,60 @@
+
+
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling and editor settings
+.vscode/
+.idea/
+.claude/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test, coverage, and build artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Runtime data and local app state
+uploads/
+static/screenshots/
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+
+# YOLO / training outputs
+runs/
+*.cache
+*.csv
+
+# Model weights and other large local binaries
+*.pt
+*.onnx
+*.engine
+*.tflite
+
+# Keep dataset/config metadata, but ignore bulky training assets
+ppe detection.v3i.yolov8/train/
+ppe detection.v3i.yolov8/valid/
+ppe detection.v3i.yolov8/test/
+!ppe detection.v3i.yolov8/data.yaml
+!ppe detection.v3i.yolov8/README.dataset.txt
+!ppe detection.v3i.yolov8/README.roboflow.txt

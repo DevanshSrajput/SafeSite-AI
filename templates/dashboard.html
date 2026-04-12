@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSite AI — Analytics Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="nav-icon">&#9881;</span>
+            <h1>SafeSite AI</h1>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Live Monitor</a>
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/reports" class="nav-link">Reports</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="page-header">
+            <h2>Analytics Dashboard</h2>
+            <p class="subtitle">Safety compliance metrics and violation trends</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-card-value" id="totalViolations">{{ charts.total_violations }}</div>
+                <div class="stat-card-label">Total Violations</div>
+            </div>
+            <div class="stat-card card-warning">
+                <div class="stat-card-value" id="helmetCount">
+                    {{ charts.stats.by_type.get('No Helmet', 0) if charts.stats.by_type else 0 }}
+                </div>
+                <div class="stat-card-label">No Helmet</div>
+            </div>
+            <div class="stat-card card-info">
+                <div class="stat-card-value" id="vestCount">
+                    {{ charts.stats.by_type.get('No Safety Vest', 0) if charts.stats.by_type else 0 }}
+                </div>
+                <div class="stat-card-label">No Safety Vest</div>
+            </div>
+            <div class="stat-card card-danger">
+                <div class="stat-card-value" id="zoneCount">
+                    {{ charts.stats.by_type.get('Zone Intrusion', 0) if charts.stats.by_type else 0 }}
+                </div>
+                <div class="stat-card-label">Zone Intrusions</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div id="trendChart"></div>
+            </div>
+            <div class="chart-card">
+                <div id="typeChart"></div>
+            </div>
+            <div class="chart-card">
+                <div id="zoneChart"></div>
+            </div>
+            <div class="chart-card">
+                <div id="hoursChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Render Plotly charts
+        const trendData = {{ charts.trend | safe }};
+        const typeData = {{ charts.by_type | safe }};
+        const zoneData = {{ charts.by_zone | safe }};
+        const hoursData = {{ charts.peak_hours | safe }};
+
+        const config = {responsive: true, displayModeBar: false};
+
+        Plotly.newPlot('trendChart', trendData.data, trendData.layout, config);
+        Plotly.newPlot('typeChart', typeData.data, typeData.layout, config);
+        Plotly.newPlot('zoneChart', zoneData.data, zoneData.layout, config);
+        Plotly.newPlot('hoursChart', hoursData.data, hoursData.layout, config);
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => { location.reload(); }, 30000);
+    </script>
+</body>
+</html>

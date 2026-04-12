@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSite AI — Live Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="nav-icon">&#9881;</span>
+            <h1>SafeSite AI</h1>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link active">Live Monitor</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/reports" class="nav-link">Reports</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <div class="control-group">
+                <label for="videoSource">Source:</label>
+                <select id="videoSource">
+                    <option value="0">Webcam</option>
+                </select>
+                <button id="btnStart" class="btn btn-primary" onclick="startMonitoring()">Start</button>
+                <button id="btnStop" class="btn btn-danger" onclick="stopMonitoring()">Stop</button>
+            </div>
+            <div class="control-group">
+                <label class="btn btn-secondary" style="cursor:pointer;">
+                    Upload Video
+                    <input type="file" id="videoUpload" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
+                </label>
+                <button id="btnToggleDetection" class="btn btn-secondary" onclick="toggleDetection()">
+                    Detection: ON
+                </button>
+                <button id="btnToggleVoice" class="btn btn-secondary" onclick="toggleVoice()">
+                    Voice: ON
+                </button>
+            </div>
+        </div>
+        <!-- Upload progress -->
+        <div id="uploadStatus" class="status-message" style="display:none;"></div>
+
+        <div class="content-grid">
+            <!-- Video Feed + Zone Drawing -->
+            <div class="video-section">
+                <div class="video-container" id="videoContainer">
+                    <img id="videoFeed" src="" alt="Video feed will appear here">
+                    <canvas id="zoneCanvas"></canvas>
+                    <div id="noFeedOverlay" class="no-feed-overlay">
+                        <span class="no-feed-icon">&#128249;</span>
+                        <p>Click <strong>Start</strong> to begin monitoring</p>
+                    </div>
+                </div>
+
+                <!-- Zone Drawing Controls -->
+                <div class="zone-controls">
+                    <h3>Restricted Zones</h3>
+                    <div class="zone-form">
+                        <input type="text" id="zoneName" placeholder="Zone name">
+                        <input type="color" id="zoneColor" value="#FF0000">
+                        <button class="btn btn-primary" onclick="startDrawingZone()">Draw Zone</button>
+                        <button class="btn btn-secondary" onclick="finishZone()">Save Zone</button>
+                        <button class="btn btn-danger" onclick="cancelZone()">Cancel</button>
+                    </div>
+                    <div id="zoneList" class="zone-list"></div>
+                </div>
+            </div>
+
+            <!-- Live Violation Feed -->
+            <div class="sidebar">
+                <h3>Recent Violations</h3>
+                <div id="violationFeed" class="violation-feed">
+                    <p class="muted">No violations detected yet.</p>
+                </div>
+                <div class="stats-summary">
+                    <h3>Session Stats</h3>
+                    <div class="stat-row">
+                        <span>Total Violations</span>
+                        <span id="statTotal" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>No Helmet</span>
+                        <span id="statHelmet" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Zone Intrusions</span>
+                        <span id="statZone" class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const zones = {{ zones | safe }};
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
