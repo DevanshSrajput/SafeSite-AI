@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeSite AI — Incident Reports</title>
+    <title>SafeSite AI - Incident Reports</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
             <span class="nav-icon">&#9881;</span>
@@ -21,71 +20,87 @@
     </nav>
 
     <div class="main-container">
-        <div class="page-header">
-            <h2>Incident Reports</h2>
-            <p class="subtitle">Generate and download PDF reports for any date range</p>
-        </div>
-
-        <!-- Report Generation Form -->
-        <div class="report-form-card">
-            <h3>Generate Report</h3>
-            <div class="report-form">
-                <div class="form-group">
-                    <label for="startDate">Start Date</label>
-                    <input type="date" id="startDate">
+        <div class="page-shell report-layout">
+            <section class="page-hero">
+                <div class="hero-eyebrow">Reporting Workspace</div>
+                <div class="hero-title-row">
+                    <div class="page-header">
+                        <h2>Incident Reports</h2>
+                        <p class="subtitle">Preview logged violations, filter by date or type, and generate polished PDF summaries for audits and reviews.</p>
+                    </div>
+                    <div class="hero-meta">
+                        <div class="hero-pill">Date-range filtering</div>
+                        <div class="hero-pill">Preview before export</div>
+                        <div class="hero-pill">PDF download ready</div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="endDate">End Date</label>
-                    <input type="date" id="endDate">
-                </div>
-                <div class="form-group">
-                    <label for="filterType">Violation Type</label>
-                    <select id="filterType">
-                        <option value="">All Types</option>
-                        <option value="No Helmet">No Helmet</option>
-                        <option value="No Safety Vest">No Safety Vest</option>
-                        <option value="Zone Intrusion">Zone Intrusion</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary btn-lg" onclick="generateReport()">
-                    Generate PDF Report
-                </button>
-                <button class="btn btn-secondary btn-lg" onclick="previewViolations()">
-                    Preview Violations
-                </button>
-            </div>
-        </div>
+            </section>
 
-        <!-- Violation Preview Table -->
-        <div id="previewSection" class="violations-table-card" style="display:none;">
-            <div class="table-header">
-                <h3>Violation Log</h3>
-                <span id="violationCount" class="badge">0 records</span>
-            </div>
-            <div class="table-container">
-                <table id="violationsTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Timestamp</th>
-                            <th>Violation Type</th>
-                            <th>Zone</th>
-                            <th>Confidence</th>
-                            <th>Screenshot</th>
-                        </tr>
-                    </thead>
-                    <tbody id="violationsBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <section class="report-form-card section-card">
+                <div class="section-heading">
+                    <h3>Generate Report</h3>
+                </div>
+                <p class="section-copy">Choose the date range and optional violation filter, then preview records or export a report with one click.</p>
+                <div class="report-form">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterType">Violation Type</label>
+                        <select id="filterType">
+                            <option value="">All Types</option>
+                            <option value="No Helmet">No Helmet</option>
+                            <option value="No Safety Vest">No Safety Vest</option>
+                            <option value="Zone Intrusion">Zone Intrusion</option>
+                        </select>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary btn-lg" onclick="generateReport()">
+                            Generate PDF Report
+                        </button>
+                        <button class="btn btn-secondary btn-lg" onclick="previewViolations()">
+                            Preview Violations
+                        </button>
+                    </div>
+                </div>
+            </section>
 
-        <!-- Status Message -->
-        <div id="reportStatus" class="status-message" style="display:none;"></div>
+            <section id="previewSection" class="violations-table-card section-card" style="display:none;">
+                <div class="table-header">
+                    <div>
+                        <h3>Violation Log</h3>
+                        <p class="section-copy">Review the matching records before generating a downloadable report.</p>
+                    </div>
+                    <span id="violationCount" class="badge">0 records</span>
+                </div>
+                <div class="table-container">
+                    <table id="violationsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Timestamp</th>
+                                <th>Violation Type</th>
+                                <th>Zone</th>
+                                <th>Confidence</th>
+                                <th>Screenshot</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violationsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <div id="reportStatus" class="status-message" style="display:none;"></div>
+        </div>
     </div>
 
     <script>
-        // Set default dates to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('startDate').value = today;
         document.getElementById('endDate').value = today;

@@ -23,15 +23,17 @@ app = Flask(__name__)
 
 # --- Configuration ---
 VIDEO_SOURCE = 0  # 0 = webcam, or path to video file like 'video.mp4'
+CONFIDENCE_PERSON = 0.50
+CONFIDENCE_PPE = 0.40
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 ALLOWED_VIDEO_EXT = {'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max upload
-CONFIDENCE_THRESHOLD = 0.55
 
 # --- Initialize modules ---
-detector = PPEDetector(ppe_model_path='ppe_best.pt', person_model_path='yolov8n.pt', confidence=CONFIDENCE_THRESHOLD)
+detector = PPEDetector(ppe_model_path='ppe_best.pt', person_model_path='yolov8n.pt',
+                       person_confidence=CONFIDENCE_PERSON, ppe_confidence=CONFIDENCE_PPE)
 zone_monitor = ZoneMonitor()
 voice_alert = VoiceAlertSystem(enabled=True)
 
@@ -65,7 +67,12 @@ def release_camera():
 
 
 def generate_frames():
-    """Generator: yield annotated MJPEG frames for the video feed."""
+    """Generator: yield annotated MJPEG frames for the video feed.
+
+    Detection runs in a background thread (detector._detection_worker).
+    This generator only submits frames and reads cached results, so the
+    video stream is never blocked by inference.
+    """
     global frame_count, is_monitoring
 
     cam = get_camera()
@@ -79,7 +86,14 @@ def generate_frames():
             fps = 25.0
         frame_delay = 1.0 / fps
     else:
-        frame_delay = 0
+        frame_delay = 1.0 / 30  # cap webcam at ~30 FPS
+
+    # Keep last-known results so every frame gets annotated
+    last_persons = []
+    last_ppe_items = []
+    last_violations = []
+    last_zone_violations = []
+    processed_result_id = None  # track which detection batch we already logged
 
     while is_monitoring:
         frame_start = time.time()
@@ -90,7 +104,6 @@ def generate_frames():
             success, frame = cam.read()
 
         if not success:
-            # If video file, loop it
             if is_video_file:
                 with camera_lock:
                     cam.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -100,14 +113,27 @@ def generate_frames():
         frame_count += 1
 
         if detection_active:
-            # Run detection every 2nd frame to save CPU
-            if frame_count % 2 == 0:
-                persons, ppe_items = detector.detect(frame)
-                ppe_violations = detector.check_ppe_violations(persons, ppe_items)
-                zone_violations = zone_monitor.check_intrusions(persons)
+            # Submit every 3rd frame to the background detector
+            if frame_count % 3 == 0:
+                detector.submit_frame(frame)
 
-                # Process PPE violations
-                for v in ppe_violations:
+            # Always read cached results (non-blocking)
+            persons, ppe_items, violations = detector.get_results()
+
+            # Build a fingerprint to know if these are NEW results
+            result_id = None
+            if persons or ppe_items or violations:
+                result_id = id(persons)  # changes each time detector produces new list
+                last_persons = persons
+                last_ppe_items = ppe_items
+                last_violations = violations
+                last_zone_violations = zone_monitor.check_intrusions(persons)
+
+            # Only log/alert when we get genuinely new detection results
+            if result_id is not None and result_id != processed_result_id:
+                processed_result_id = result_id
+
+                for v in last_violations:
                     vkey = detector.make_violation_key(v['violation_type'], v['bbox'])
                     if detector.should_alert(vkey):
                         screenshot_path = detector.save_screenshot(frame, v['violation_type'])
@@ -119,8 +145,7 @@ def generate_frames():
                         )
                         voice_alert.alert(v['violation_type'])
 
-                # Process zone intrusions
-                for v in zone_violations:
+                for v in last_zone_violations:
                     vkey = detector.make_violation_key(f"zone_{v['zone_name']}", v['bbox'])
                     if detector.should_alert(vkey):
                         screenshot_path = detector.save_screenshot(frame, 'Zone_Intrusion')
@@ -132,12 +157,10 @@ def generate_frames():
                         )
                         voice_alert.alert('Zone Intrusion', v['zone_name'])
 
-                # Draw zones and annotations
-                zone_monitor.draw_zones_on_frame(frame)
-                frame = detector.annotate_frame(frame, persons, ppe_items,
-                                                 ppe_violations, zone_violations)
-            else:
-                zone_monitor.draw_zones_on_frame(frame)
+            # Annotate every frame with latest cached results
+            zone_monitor.draw_zones_on_frame(frame)
+            frame = detector.annotate_frame(frame, last_persons, last_ppe_items,
+                                             last_violations, last_zone_violations)
         else:
             zone_monitor.draw_zones_on_frame(frame)
 
@@ -146,12 +169,11 @@ def generate_frames():
         if not ret:
             continue
 
-        # Throttle video file playback to original FPS
-        if is_video_file and frame_delay > 0:
-            elapsed = time.time() - frame_start
-            wait = frame_delay - elapsed
-            if wait > 0:
-                time.sleep(wait)
+        # Throttle to target FPS
+        elapsed = time.time() - frame_start
+        wait = frame_delay - elapsed
+        if wait > 0:
+            time.sleep(wait)
 
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
