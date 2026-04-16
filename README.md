@@ -2,6 +2,11 @@
 
 SafeSite AI is a Flask-based construction safety monitoring app that uses YOLO models to detect workers, PPE compliance, and restricted-zone intrusions in real time.
 
+## Best Model
+```
+https://drive.google.com/file/d/1keShImRescQkreYiGrvxLL_G49aH4vRY/view?usp=sharing
+```
+
 ## Features
 
 - Real-time video monitoring from a webcam or uploaded video file
