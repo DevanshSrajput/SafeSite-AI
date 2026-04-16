@@ -4,164 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeSite AI - Live Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="page-live">
     <nav class="navbar">
         <div class="nav-brand">
             <span class="nav-icon">&#9881;</span>
-            <h1>SafeSite AI</h1>
+            <h1>SAFESITE<span class="brand-dot">.</span>AI</h1>
         </div>
         <div class="nav-links">
             <a href="/" class="nav-link active">Live Monitor</a>
             <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/reports" class="nav-link">Reports</a>
         </div>
+        <div class="nav-status">
+            <span class="status-dot"></span>
+            <span>ONLINE</span>
+        </div>
     </nav>
 
-    <div class="main-container">
-        <div class="page-shell">
-            <section class="page-hero">
-                <div class="hero-eyebrow">Safety Operations Console</div>
-                <div class="hero-title-row">
-                    <div class="page-header">
-                        <h2>Live Monitoring</h2>
-                        <p class="subtitle">Track PPE compliance and zone intrusions from your webcam or uploaded footage with clear, real-time controls.</p>
-                    </div>
-                    <div class="hero-meta">
-                        <div class="hero-pill">Real-time video feed</div>
-                        <div class="hero-pill">Zone-aware monitoring</div>
-                        <div class="hero-pill">Instant incident logging</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="control-bar section-card">
-                <div class="control-cluster">
-                    <div class="control-cluster-header">
-                        <div>
-                            <h3>Monitoring Controls</h3>
-                            <p>Select a source and start or stop the live safety stream.</p>
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="videoSource">Video Source</label>
-                        <select id="videoSource">
-                            <option value="0">Webcam</option>
-                        </select>
-                    </div>
-                    <div class="action-row">
-                        <button id="btnStart" class="btn btn-primary" onclick="startMonitoring()">Start Monitoring</button>
-                        <button id="btnStop" class="btn btn-danger" onclick="stopMonitoring()">Stop Feed</button>
-                    </div>
-                </div>
-
-                <div class="control-cluster">
-                    <div class="control-cluster-header">
-                        <div>
-                            <h3>Input and Alerts</h3>
-                            <p>Upload footage, pause detection, or mute voice guidance without affecting data capture.</p>
-                        </div>
-                    </div>
-                    <div class="action-row">
-                        <label class="btn btn-secondary" style="cursor:pointer;">
-                            Upload Video
-                            <input type="file" id="videoUpload" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
-                        </label>
-                        <button id="btnToggleDetection" class="btn btn-secondary" onclick="toggleDetection()">
-                            Detection: ON
-                        </button>
-                        <button id="btnToggleVoice" class="btn btn-secondary" onclick="toggleVoice()">
-                            Voice: ON
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <div id="uploadStatus" class="status-message" style="display:none;"></div>
-
-            <div class="content-grid">
-                <div class="video-section">
-                    <section class="video-panel section-card">
-                        <div class="video-frame-header">
-                            <div>
-                                <div class="section-heading">
-                                    <h3>Active Site Feed</h3>
-                                </div>
-                                <p class="section-copy">The camera view remains the focal workspace for live monitoring, annotations, and zone setup.</p>
-                            </div>
-                            <div class="video-meta">
-                                <div class="meta-chip">PPE detection</div>
-                                <div class="meta-chip">Zone overlays</div>
-                                <div class="meta-chip">Event snapshots</div>
-                            </div>
-                        </div>
-                        <div class="video-container" id="videoContainer">
-                            <img id="videoFeed" src="" alt="Video feed will appear here">
-                            <canvas id="zoneCanvas"></canvas>
-                            <div id="noFeedOverlay" class="no-feed-overlay">
-                                <span class="no-feed-icon">&#128249;</span>
-                                <div class="overlay-title">Monitoring is standing by</div>
-                                <p class="overlay-copy">Choose a source above and start the feed to begin detecting helmet, vest, and restricted-zone violations.</p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="zone-controls section-card">
-                        <div class="section-heading">
-                            <h3>Restricted Zones</h3>
-                        </div>
-                        <p class="section-copy">Create safety boundaries directly on the feed. Draw points on the video, then save the finished polygon as a monitored zone.</p>
-                        <div class="zone-form">
-                            <div class="zone-form-fields">
-                                <input type="text" id="zoneName" placeholder="Zone name">
-                                <input type="color" id="zoneColor" value="#FF0000">
-                            </div>
-                            <div class="zone-form-actions">
-                                <button class="btn btn-primary" onclick="startDrawingZone()">Draw Zone</button>
-                                <button class="btn btn-secondary" onclick="finishZone()">Save Zone</button>
-                                <button class="btn btn-danger" onclick="cancelZone()">Cancel</button>
-                            </div>
-                        </div>
-                        <div class="zone-help">Suggested flow: click <strong>Draw Zone</strong>, add at least 3 points on the live frame, then save to activate intrusion monitoring for that area.</div>
-                        <div id="zoneList" class="zone-list"></div>
-                    </section>
-                </div>
-
-                <div class="sidebar">
-                    <section class="sidebar-card section-card">
-                        <div class="section-heading">
-                            <h3>Recent Violations</h3>
-                        </div>
-                        <p class="section-copy">Latest incidents appear here as the system logs them from the active stream.</p>
-                        <div id="violationFeed" class="violation-feed">
-                            <p class="muted">No violations detected yet.</p>
-                        </div>
-                    </section>
-
-                    <section class="sidebar-card section-card">
-                        <div class="section-heading">
-                            <h3>Session Stats</h3>
-                        </div>
-                        <div class="stats-summary">
-                            <div class="stat-row">
-                                <span>Total Violations</span>
-                                <span id="statTotal" class="stat-value">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>No Helmet</span>
-                                <span id="statHelmet" class="stat-value">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Zone Intrusions</span>
-                                <span id="statZone" class="stat-value">0</span>
-                            </div>
-                        </div>
-                    </section>
+    <main class="live-shell">
+        <section class="live-video">
+            <div class="panel-head">
+                <h3>LIVE FEED</h3>
+                <div class="chip-row">
+                    <span class="chip chip-yellow">PPE</span>
+                    <span class="chip chip-cyan">ZONES</span>
+                    <span class="chip chip-pink">LOG</span>
                 </div>
             </div>
-        </div>
-    </div>
+            <div class="video-container" id="videoContainer">
+                <img id="videoFeed" src="" alt="Video feed">
+                <canvas id="zoneCanvas"></canvas>
+                <div id="noFeedOverlay" class="no-feed-overlay">
+                    <div class="overlay-title">STANDING BY</div>
+                    <p class="overlay-copy">Pick a source on the right and hit START.</p>
+                </div>
+            </div>
+        </section>
+
+        <aside class="live-controls">
+            <section class="brick brick-yellow">
+                <div class="brick-head">
+                    <h3>SOURCE</h3>
+                </div>
+                <div class="field">
+                    <label for="videoSource">Video Source</label>
+                    <select id="videoSource">
+                        <option value="0">Webcam</option>
+                    </select>
+                </div>
+                <div class="btn-row">
+                    <button id="btnStart" class="btn btn-primary" onclick="startMonitoring()">START</button>
+                    <button id="btnStop" class="btn btn-danger" onclick="stopMonitoring()">STOP</button>
+                </div>
+            </section>
+
+            <section class="brick brick-cyan">
+                <div class="brick-head">
+                    <h3>INPUT / ALERTS</h3>
+                </div>
+                <div class="btn-row">
+                    <label class="btn btn-secondary btn-file">
+                        UPLOAD
+                        <input type="file" id="videoUpload" accept="video/*" onchange="uploadVideo(this)">
+                    </label>
+                    <button id="btnToggleDetection" class="btn btn-secondary" onclick="toggleDetection()">
+                        DET: ON
+                    </button>
+                    <button id="btnToggleVoice" class="btn btn-secondary" onclick="toggleVoice()">
+                        VOICE: ON
+                    </button>
+                </div>
+                <div id="uploadStatus" class="status-message" style="display:none;"></div>
+            </section>
+
+            <section class="brick brick-pink">
+                <div class="brick-head">
+                    <h3>ZONES</h3>
+                </div>
+                <div class="zone-form">
+                    <input type="text" id="zoneName" placeholder="Zone name">
+                    <input type="color" id="zoneColor" value="#FF0000">
+                </div>
+                <div class="btn-row btn-row-tight">
+                    <button class="btn btn-primary btn-sm" onclick="startDrawingZone()">DRAW</button>
+                    <button class="btn btn-secondary btn-sm" onclick="finishZone()">SAVE</button>
+                    <button class="btn btn-danger btn-sm" onclick="cancelZone()">X</button>
+                </div>
+                <div id="zoneList" class="zone-list"></div>
+            </section>
+
+            <section class="brick brick-green">
+                <div class="brick-head">
+                    <h3>STATS</h3>
+                </div>
+                <div class="stats-mini">
+                    <div class="stat-mini">
+                        <span class="stat-mini-label">TOTAL</span>
+                        <span id="statTotal" class="stat-mini-val">0</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-mini-label">HELMET</span>
+                        <span id="statHelmet" class="stat-mini-val">0</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-mini-label">ZONE</span>
+                        <span id="statZone" class="stat-mini-val">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="brick brick-white brick-feed">
+                <div class="brick-head">
+                    <h3>RECENT</h3>
+                </div>
+                <div id="violationFeed" class="violation-feed">
+                    <p class="muted">No violations yet.</p>
+                </div>
+            </section>
+        </aside>
+    </main>
 
     <script>
         const zones = {{ zones | safe }};

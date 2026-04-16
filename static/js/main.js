@@ -171,9 +171,12 @@ function drawExistingZones() {
             const cx = zone.points.reduce((s, p) => s + p[0], 0) / zone.points.length;
             const cy = zone.points.reduce((s, p) => s + p[1], 0) / zone.points.length;
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px Segoe UI';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.font = 'bold 16px "Archivo Black", Impact, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(zone.name, cx, cy);
+            ctx.strokeText(zone.name.toUpperCase(), cx, cy);
+            ctx.fillText(zone.name.toUpperCase(), cx, cy);
         });
     }
 
@@ -246,9 +249,12 @@ function drawExistingZones_only() {
             const cx = zone.points.reduce((s, p) => s + p[0], 0) / zone.points.length;
             const cy = zone.points.reduce((s, p) => s + p[1], 0) / zone.points.length;
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px Segoe UI';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.font = 'bold 16px "Archivo Black", Impact, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(zone.name, cx, cy);
+            ctx.strokeText(zone.name.toUpperCase(), cx, cy);
+            ctx.fillText(zone.name.toUpperCase(), cx, cy);
         });
     }
 }
