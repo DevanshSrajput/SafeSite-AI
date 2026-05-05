@@ -9,6 +9,11 @@ from flask import (Flask, render_template, Response, request,
                    jsonify, send_file)
 from werkzeug.utils import secure_filename
 
+try:
+    import torch
+except Exception:
+    torch = None
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -31,11 +36,50 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max upload
 
+
+def select_compute_device():
+    if torch is None:
+        return None
+
+    if sys.platform == 'darwin':
+        mps_backend = getattr(torch.backends, 'mps', None)
+        if mps_backend:
+            is_built = getattr(mps_backend, 'is_built', None)
+            is_available = getattr(mps_backend, 'is_available', None)
+            if callable(is_built) and callable(is_available):
+                if is_built() and is_available():
+                    return 'mps'
+
+    if torch.cuda.is_available():
+        return 'cuda'
+
+    return 'cpu'
+
+
+DEVICE = select_compute_device()
+if torch is not None and DEVICE in {'mps', 'cuda'}:
+    try:
+        torch.set_float32_matmul_precision('high')
+    except Exception:
+        pass
+
 # --- Initialize modules ---
 detector = PPEDetector(ppe_model_path='ppe_best.pt', person_model_path='yolov8n.pt',
-                       person_confidence=CONFIDENCE_PERSON, ppe_confidence=CONFIDENCE_PPE)
+                       person_confidence=CONFIDENCE_PERSON, ppe_confidence=CONFIDENCE_PPE,
+                       device=DEVICE)
 zone_monitor = ZoneMonitor()
 voice_alert = VoiceAlertSystem(enabled=True)
+
+# --- Camera utilities ---
+def list_available_cameras(max_cameras=5):
+    """Return a list of available camera indices (0, 1, ...)."""
+    available = []
+    for idx in range(max_cameras):
+        cap = cv2.VideoCapture(idx)
+        if cap is not None and cap.isOpened():
+            available.append(idx)
+            cap.release()
+    return available
 
 # --- Global state ---
 camera = None
@@ -210,6 +254,7 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+
 @app.route('/api/start', methods=['POST'])
 def start_monitoring():
     """Start the video monitoring."""
@@ -220,6 +265,8 @@ def start_monitoring():
     # Determine video source
     if source == '0' or source == 'webcam':
         VIDEO_SOURCE = 0
+    elif source.isdigit():
+        VIDEO_SOURCE = int(source)
     else:
         # Check uploads folder first, then treat as raw path
         upload_path = os.path.join(UPLOAD_FOLDER, source)
@@ -228,11 +275,19 @@ def start_monitoring():
         elif os.path.isfile(source):
             VIDEO_SOURCE = source
         else:
-            return jsonify({'error': f'Video file not found: {source}'}), 404
+            return jsonify({'error': f'Video file not found or invalid camera index: {source}'}), 404
 
     release_camera()
     is_monitoring = True
     return jsonify({'status': 'started', 'source': str(VIDEO_SOURCE)})
+
+
+# --- Camera selection endpoint ---
+@app.route('/api/cameras', methods=['GET'])
+def get_cameras():
+    """List available camera indices."""
+    cameras = list_available_cameras()
+    return jsonify({'cameras': cameras})
 
 
 @app.route('/api/upload_video', methods=['POST'])
@@ -385,6 +440,8 @@ if __name__ == '__main__':
     init_db()
     print('\n' + '=' * 60)
     print('  SafeSite AI — Real-Time Safety Monitoring System')
+    if DEVICE:
+        print(f'  Compute device: {DEVICE}')
     print('  Open http://127.0.0.1:5000 in your browser')
     print('=' * 60 + '\n')
     app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
