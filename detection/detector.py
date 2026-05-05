@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import sys
 import time
 import threading
 from datetime import datetime
@@ -29,9 +30,18 @@ class PPEDetector:
     COLOR_ZONE_INTRUSION = (0, 165, 255)
 
     def __init__(self, ppe_model_path='ppe_best.pt', person_model_path='yolov8n.pt',
-                 person_confidence=0.50, ppe_confidence=0.40):
+                 person_confidence=0.50, ppe_confidence=0.40, device=None):
+        self.device = device
         self.person_model = YOLO(person_model_path)
         self.ppe_model = YOLO(ppe_model_path)
+        if self.device:
+            try:
+                self.person_model.to(self.device)
+                self.ppe_model.to(self.device)
+            except Exception as exc:
+                print(f"Warning: failed to move YOLO models to '{self.device}'. Falling back to CPU. ({exc})",
+                      file=sys.stderr)
+                self.device = None
         self.person_confidence = person_confidence
         self.ppe_confidence = ppe_confidence
         self.violation_cooldown = {}
@@ -94,7 +104,11 @@ class PPEDetector:
         self._thread.join(timeout=3)
 
     def _run_person_detection(self, frame):
-        results = self.person_model(frame, conf=self.person_confidence, classes=[0], verbose=False)
+        if self.device:
+            results = self.person_model(frame, conf=self.person_confidence, classes=[0], verbose=False,
+                                        device=self.device)
+        else:
+            results = self.person_model(frame, conf=self.person_confidence, classes=[0], verbose=False)
         persons = []
         if results and results[0].boxes is not None:
             for box in results[0].boxes:
@@ -109,7 +123,10 @@ class PPEDetector:
         return persons
 
     def _run_ppe_detection(self, frame):
-        results = self.ppe_model(frame, conf=self.ppe_confidence, verbose=False)
+        if self.device:
+            results = self.ppe_model(frame, conf=self.ppe_confidence, verbose=False, device=self.device)
+        else:
+            results = self.ppe_model(frame, conf=self.ppe_confidence, verbose=False)
         ppe_items = []
         if results and results[0].boxes is not None:
             for box in results[0].boxes:
